@@ -5,12 +5,13 @@ import (
 	"reflect"
 
 	"github.com/lestrrat-go/jspointer"
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/pdebug/v3"
 	"github.com/lestrrat-go/structinfo"
 	"github.com/pkg/errors"
 )
 
 const ref = "$ref"
+
 var refrv = reflect.ValueOf(ref)
 
 type Option interface {
