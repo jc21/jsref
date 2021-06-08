@@ -2,6 +2,7 @@ package provider
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -21,6 +22,16 @@ func NewFS(root string) *FS {
 	}
 }
 
+// NewIoFS creates a new Provider that uses a FS object directly
+// instead of a path to open. This is useful for embed.FS objects
+func NewIoFS(ioFS fs.FS, root string) *FS {
+	return &FS{
+		mp:   NewMap(),
+		Root: root,
+		IoFS: ioFS,
+	}
+}
+
 // Get fetches the document specified by the `key` argument.
 // Everything other than `.Path` is ignored.
 // Note that once a document is read, it WILL be cached for the
@@ -37,33 +48,50 @@ func (fp *FS) Get(key *url.URL) (out interface{}, err error) {
 
 	// Everything other than "Path" is ignored
 	path := filepath.Clean(filepath.Join(fp.Root, key.Path))
+	// Strip prefix from path if this is a io.fs lookup
+	if fp.IoFS != nil {
+		path = strings.TrimLeft(path, "/")
+	}
 
 	mpkey := &url.URL{Path: path}
 	if x, err := fp.mp.Get(mpkey); err == nil {
 		return x, nil
 	}
 
-	fi, err := os.Stat(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to stat local resource")
-	}
-
-	if fi.IsDir() {
-		return nil, errors.New("target is not a file")
-	}
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open local resource")
-	}
-	defer f.Close()
-
 	var x interface{}
-	dec := json.NewDecoder(f)
-	if err := dec.Decode(&x); err != nil {
-		return nil, errors.Wrap(err, "failed to parse JSON local resource")
+	var dec *json.Decoder
+
+	// look up path from FS
+	if fp.IoFS != nil {
+		f, err := fp.IoFS.Open(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to open fs resource")
+		}
+		defer f.Close()
+		dec = json.NewDecoder(f)
+	} else {
+		// look up path from file system
+		fi, err := os.Stat(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to stat local resource")
+		}
+		if fi.IsDir() {
+			return nil, errors.New("target is not a file")
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to open local resource")
+		}
+		defer f.Close()
+		dec = json.NewDecoder(f)
 	}
 
+	if err := dec.Decode(&x); err != nil {
+		return nil, errors.Wrap(err, "failed to parse JSON resource")
+	}
+
+	// nolint: errcheck
 	fp.mp.Set(path, x)
 
 	return x, nil

@@ -1,12 +1,14 @@
 package provider
 
 import (
+	"io/fs"
 	"net/http"
 	"sync"
 )
 
 type FS struct {
 	mp   *Map
+	IoFS fs.FS
 	Root string
 }
 
