@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewFS creates a new Provider that looks for JSON documents
+// NewHTTP creates a new Provider that looks for JSON documents
 // from the internet over HTTP(s)
 func NewHTTP() *HTTP {
 	return &HTTP{
@@ -26,7 +26,7 @@ func NewHTTP() *HTTP {
 // a HTTP request if necessary.
 // Note that once a document is read, it WILL be cached for the
 // duration of this object, unless you call `Reset`
-func (hp *HTTP) Get(key *url.URL) (interface{}, error) {
+func (hp *HTTP) Get(key *url.URL) (any, error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("HTTP.Get(%s)", key)
 		defer g.End()
@@ -47,11 +47,11 @@ func (hp *HTTP) Get(key *url.URL) (interface{}, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch HTTP resource")
 	}
-	defer res.Body.Close()
+	defer res.Body.Close() // nolint: errcheck, gosec
 
 	dec := json.NewDecoder(res.Body)
 
-	var x interface{}
+	var x any
 	if err := dec.Decode(&x); err != nil {
 		return nil, errors.Wrap(err, "failed to parse JSON from HTTP resource")
 	}

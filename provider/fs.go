@@ -36,7 +36,7 @@ func NewIoFS(ioFS fs.FS, root string) *FS {
 // Everything other than `.Path` is ignored.
 // Note that once a document is read, it WILL be cached for the
 // duration of this object, unless you call `Reset`
-func (fp *FS) Get(key *url.URL) (out interface{}, err error) {
+func (fp *FS) Get(key *url.URL) (out any, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("provider.FS.Get(%s)", key.String()).BindError(&err)
 		defer g.End()
@@ -58,7 +58,7 @@ func (fp *FS) Get(key *url.URL) (out interface{}, err error) {
 		return x, nil
 	}
 
-	var x interface{}
+	var x any
 	var dec *json.Decoder
 
 	// look up path from FS
@@ -67,7 +67,7 @@ func (fp *FS) Get(key *url.URL) (out interface{}, err error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open fs resource")
 		}
-		defer f.Close()
+		defer f.Close() // nolint: errcheck, gosec
 		dec = json.NewDecoder(f)
 	} else {
 		// look up path from file system
@@ -83,7 +83,7 @@ func (fp *FS) Get(key *url.URL) (out interface{}, err error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open local resource")
 		}
-		defer f.Close()
+		defer f.Close() // nolint: errcheck, gosec
 		dec = json.NewDecoder(f)
 	}
 
@@ -92,7 +92,7 @@ func (fp *FS) Get(key *url.URL) (out interface{}, err error) {
 	}
 
 	// nolint: errcheck
-	fp.mp.Set(path, x)
+	fp.mp.Set(path, x) // nolint: errcheck, gosec
 
 	return x, nil
 }

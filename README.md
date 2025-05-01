@@ -1,9 +1,5 @@
 # go-jsref
 
-[![Build Status](https://travis-ci.org/lestrrat-go/jsref.svg?branch=master)](https://travis-ci.org/lestrrat-go/jsref)
-
-[![GoDoc](https://godoc.org/github.com/lestrrat-go/jsref?status.svg)](https://godoc.org/github.com/lestrrat-go/jsref)
-
 JSON Reference Implementation for Go
 
 # SYNOPSIS
@@ -16,8 +12,8 @@ import (
   "fmt"
   "log"
 
-  jsref "github.com/lestrrat-go/jsref"
-  "github.com/lestrrat-go/jsref/provider"
+  jsref "github.com/jc21/jsref"
+  "github.com/jc21/jsref/provider"
 )
 
 func Example() {

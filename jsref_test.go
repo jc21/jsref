@@ -2,7 +2,6 @@ package jsref_test
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -16,17 +15,18 @@ import (
 
 	"github.com/jc21/jsref"
 	"github.com/jc21/jsref/provider"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveMemory(t *testing.T) {
-	m := map[string]interface{}{
-		"foo": []interface{}{
+	m := map[string]any{
+		"foo": []any{
 			"bar",
-			map[string]interface{}{
+			map[string]any{
 				"$ref": "#/sub",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"$ref": "obj2#/sub",
 			},
 		},
@@ -68,13 +68,13 @@ func TestResolveMemory(t *testing.T) {
 		return
 	}
 
-	if !assert.Equal(t, []interface{}{"bar", "baz", "quux"}, v) {
+	if !assert.Equal(t, []any{"bar", "baz", "quux"}, v) {
 		return
 	}
 }
 
 func TestResolveFS(t *testing.T) {
-	dir, err := ioutil.TempDir("", "jsref-test-")
+	dir, err := os.MkdirTemp("", "jsref-test-")
 	if !assert.NoError(t, err, "creating temporary directory should succeed") {
 		return
 	}
@@ -88,13 +88,13 @@ func TestResolveFS(t *testing.T) {
 	f.Write([]byte(`{"sub":"quux"}`))
 	f.Close()
 
-	m := map[string]interface{}{
-		"foo": []interface{}{
+	m := map[string]any{
+		"foo": []any{
 			"bar",
-			map[string]interface{}{
+			map[string]any{
 				"$ref": "#/sub",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"$ref": "file:///obj2#/sub",
 			},
 		},
@@ -142,15 +142,17 @@ func TestResolveHTTP(t *testing.T) {
 	}
 
 	const schemaURL = `http://json-schema.org/draft-04/schema#`
-	if _, err := cl.Get(schemaURL); err != nil {
+	if resp, err := cl.Get(schemaURL); err != nil {
 		t.Skip("JSON schema '" + schemaURL + "' unavailable, skipping test")
+	} else {
+		defer resp.Body.Close() // nolint
 	}
 
 	res := jsref.New()
 	hp := provider.NewHTTP()
 	res.AddProvider(hp)
 
-	m := map[string]interface{}{
+	m := map[string]any{
 		"fetch": map[string]string{
 			"$ref": schemaURL,
 		},
@@ -162,19 +164,20 @@ func TestResolveHTTP(t *testing.T) {
 		return
 	}
 
+	// nolint: gocritic, staticcheck
 	switch v.(type) {
-	case map[string]interface{}:
-		mv := v.(map[string]interface{})
+	case map[string]any:
+		mv := v.(map[string]any) // nolint
 		if !assert.Equal(t, mv["id"], schemaURL, "Resolve("+schemaURL+") resolved to JSON schema") {
 			return
 		}
 	default:
-		t.Errorf("Expected map[string]interface{}")
+		t.Errorf("Expected map[string]any")
 	}
 }
 
 func TestResolveRecursive(t *testing.T) {
-	var v interface{}
+	var v any
 	src := []byte(`
 {
 	"foo": {
@@ -198,7 +201,7 @@ func TestGHPR12(t *testing.T) {
 	// https://github.com/lestrrat-go/jsref/pull/2 gave me an example
 	// using "foo" as the JS pointer (could've been a typo)
 	// but it gave me weird results, so this is where I'm testing it
-	var v interface{}
+	var v any
 	src := []byte(`
 {
 	"foo": "bar"
@@ -242,7 +245,7 @@ func TestHyperSchemaRecursive(t *testing.T) {
     }
   ]
 }`)
-	var v interface{}
+	var v any
 	err := json.Unmarshal(src, &v)
 	assert.Nil(t, err)
 	res := jsref.New()
@@ -283,7 +286,7 @@ func TestGHIssue7(t *testing.T) {
   }
 }`)
 
-	var v interface{}
+	var v any
 	if !assert.NoError(t, json.Unmarshal(src, &v), `Unmarshal should succeed`) {
 		return
 	}

@@ -7,13 +7,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NewMap ...
 func NewMap() *Map {
 	return &Map{
-		mapping: make(map[string]interface{}),
+		mapping: make(map[string]any),
 	}
 }
 
-func (mp *Map) Set(key string, v interface{}) error {
+// Set ...
+func (mp *Map) Set(key string, v any) error {
 	mp.lock.Lock()
 	defer mp.lock.Unlock()
 
@@ -21,7 +23,8 @@ func (mp *Map) Set(key string, v interface{}) error {
 	return nil
 }
 
-func (mp *Map) Get(key *url.URL) (res interface{}, err error) {
+// Get ...
+func (mp *Map) Get(key *url.URL) (res any, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Map.Get(%s)", key).BindError(&err)
 		defer g.End()
@@ -38,10 +41,11 @@ func (mp *Map) Get(key *url.URL) (res interface{}, err error) {
 	return v, nil
 }
 
+// Reset ...
 func (mp *Map) Reset() error {
 	mp.lock.Lock()
 	defer mp.lock.Unlock()
 
-	mp.mapping = make(map[string]interface{})
+	mp.mapping = make(map[string]any)
 	return nil
 }

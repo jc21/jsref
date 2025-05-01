@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	jsref "github.com/jc21/jsref"
+	"github.com/jc21/jsref"
 	"github.com/jc21/jsref/provider"
 )
 
 func Example() {
-	var v interface{}
+	var v any
 	src := []byte(`
 {
   "foo": ["bar", {"$ref": "#/sub"}, {"$ref": "obj2#/sub"}],

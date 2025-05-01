@@ -19,5 +19,5 @@ type HTTP struct {
 
 type Map struct {
 	lock    sync.Mutex
-	mapping map[string]interface{}
+	mapping map[string]any
 }

@@ -16,16 +16,16 @@ var refrv = reflect.ValueOf(ref)
 
 type Option interface {
 	Name() string
-	Value() interface{}
+	Value() any
 }
 
 type option struct {
 	name  string
-	value interface{}
+	value any
 }
 
-func (o option) Name() string       { return o.name }
-func (o option) Value() interface{} { return o.value }
+func (o option) Name() string { return o.name }
+func (o option) Value() any   { return o.value }
 
 // WithRecursiveResolution allows ou to enable recursive resolution
 // on the *result* data structure. This means that after resolving
@@ -58,16 +58,16 @@ func (r *Resolver) AddProvider(p Provider) error {
 }
 
 type resolveCtx struct {
-	rlevel    int         // recurse level
-	maxrlevel int         // max recurse level
-	object    interface{} // the main object that was passed to `Resolve()`
+	rlevel    int // recurse level
+	maxrlevel int // max recurse level
+	object    any // the main object that was passed to `Resolve()`
 }
 
 // Resolve takes a target `v`, and a JSON pointer `spec`.
 // spec is expected to be in the form of
 //
-//    [scheme://[userinfo@]host/path[?query]]#fragment
-//    [scheme:opaque[?query]]#fragment
+//	[scheme://[userinfo@]host/path[?query]]#fragment
+//	[scheme:opaque[?query]]#fragment
 //
 // where everything except for `#fragment` is optional.
 // If the fragment is empty, an error is returned.
@@ -78,16 +78,15 @@ type resolveCtx struct {
 // If `WithRecursiveResolution` option is given and its value is true,
 // an attempt to resolve all references within the resulting object
 // is made by traversing the structure recursively. Default is false
-func (r *Resolver) Resolve(v interface{}, ptr string, options ...Option) (ret interface{}, err error) {
+func (r *Resolver) Resolve(v any, ptr string, options ...Option) (ret any, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Resolver.Resolve(%s)", ptr).BindError(&err)
 		defer g.End()
 	}
 	var recursiveResolution bool
 	for _, opt := range options {
-		switch opt.Name() {
-		case "recursiveResolution":
-			recursiveResolution = opt.Value().(bool)
+		if opt.Name() == "recursiveResolution" {
+			recursiveResolution = opt.Value().(bool) // nolint
 		}
 	}
 
@@ -225,7 +224,7 @@ func traverseExpandRefRecursive(ctx *resolveCtx, r *Resolver, rv reflect.Value) 
 
 // expands $ref with in v, until all $refs are expanded.
 // note: DOES NOT recurse down into structures
-func expandRefRecursive(ctx *resolveCtx, r *Resolver, v interface{}) (ret interface{}, err error) {
+func expandRefRecursive(ctx *resolveCtx, r *Resolver, v any) (ret any, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("expandRefRecursive")
 		defer g.End()
@@ -257,7 +256,7 @@ func expandRefRecursive(ctx *resolveCtx, r *Resolver, v interface{}) (ret interf
 	return v, nil
 }
 
-func expandRef(ctx *resolveCtx, r *Resolver, v interface{}, ref string) (ret interface{}, err error) {
+func expandRef(ctx *resolveCtx, r *Resolver, _ any, ref string) (ret any, err error) {
 	ctx.rlevel++
 	if ctx.rlevel > ctx.maxrlevel {
 		return nil, ErrMaxRecursion
@@ -293,7 +292,7 @@ func expandRef(ctx *resolveCtx, r *Resolver, v interface{}, ref string) (ret int
 	return nil, errors.New("element pointed by $ref '" + ref + "' not found")
 }
 
-func findRef(v interface{}) (ref string, err error) {
+func findRef(v any) (ref string, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("findRef").BindError(&err)
 		defer g.End()
@@ -352,7 +351,7 @@ func findRef(v interface{}) (ref string, err error) {
 	return "", errors.New("$ref element must be a string")
 }
 
-func evalptr(ctx *resolveCtx, r *Resolver, v interface{}, ptrspec string) (ret interface{}, err error) {
+func evalptr(ctx *resolveCtx, r *Resolver, v any, ptrspec string) (ret any, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("evalptr(%s)", ptrspec).BindError(&err)
 		defer g.End()
